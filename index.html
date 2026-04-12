@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Still Blooming &mdash; Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root {
+  --sage: #7aaa8a;
+  --sage-dark: #4d7a60;
+  --sage-deep: #2e5040;
+  --sage-light: #e8f4ed;
+  --sage-mid: #b8d9c4;
+  --cream: #fdf8f2;
+  --cream-dark: #f5ede0;
+  --blush: #e8b4a0;
+  --blush-light: #fdf0eb;
+  --blush-dark: #c47a62;
+  --text: #2d2d2d;
+  --text2: #666;
+  --text3: #999;
+  --card: #ffffff;
+  --border: #e8ddd4;
+  --radius: 16px;
+  --radius-sm: 10px;
+  --font: 'Nunito', sans-serif;
+  --font-serif: 'Lora', serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--font); background: #f0ede8; color: var(--text); min-height: 100vh; }
+
+/* ── LOGIN ── */
+#login-screen { display: flex; min-height: 100vh; align-items: center; justify-content: center; padding: 2rem;
+  background: linear-gradient(135deg, var(--sage-deep) 0%, var(--sage-dark) 100%); }
+.login-box { background: white; border-radius: 24px; padding: 2.5rem 2rem; width: 100%; max-width: 380px; text-align: center; }
+.login-bloom { font-size: 48px; margin-bottom: 0.5rem; }
+.login-title { font-family: var(--font-serif); font-size: 28px; color: var(--sage-deep); margin-bottom: 4px; }
+.login-sub { font-size: 14px; color: var(--text3); margin-bottom: 2rem; font-style: italic; }
+.login-box input { width: 100%; font-size: 17px; font-family: var(--font); padding: 13px 16px; border: 2px solid var(--border); border-radius: var(--radius-sm); background: var(--cream); color: var(--text); margin-bottom: 1rem; text-align: center; letter-spacing: 2px; }
+.login-box input:focus { outline: none; border-color: var(--sage); }
+.login-btn { width: 100%; background: var(--sage); color: white; border: none; border-radius: var(--radius-sm); padding: 14px; font-size: 17px; font-weight: 800; font-family: var(--font); cursor: pointer; }
+.login-err { color: var(--blush-dark); font-size: 14px; font-weight: 700; margin-top: 10px; min-height: 20px; }
+
+/* ── LAYOUT ── */
+#admin-screen { display: none; min-height: 100vh; }
+.topbar { background: var(--sage-deep); padding: 1rem 2rem; display: flex; align-items: center; justify-content: space-between; }
+.topbar-left { display: flex; align-items: center; gap: 12px; }
+.topbar-bloom { font-size: 28px; }
+.topbar-title { font-family: var(--font-serif); font-size: 22px; color: white; font-style: italic; }
+.topbar-sub { font-size: 13px; color: rgba(255,255,255,0.6); font-weight: 600; }
+.topbar-right { display: flex; align-items: center; gap: 12px; }
+.topbar-greeting { font-size: 14px; color: rgba(255,255,255,0.8); font-weight: 700; }
+.logout-btn { background: rgba(255,255,255,0.15); border: none; color: white; border-radius: 8px; padding: 7px 14px; font-size: 13px; font-weight: 700; font-family: var(--font); cursor: pointer; }
+.main { display: flex; min-height: calc(100vh - 64px); }
+
+/* ── SIDEBAR ── */
+.sidebar { width: 220px; background: white; border-right: 1px solid var(--border); padding: 1.5rem 1rem; flex-shrink: 0; }
+.sidebar-section { font-size: 11px; font-weight: 800; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; padding: 0 0.5rem; margin-bottom: 8px; margin-top: 1.5rem; }
+.sidebar-section:first-child { margin-top: 0; }
+.sidebar-btn { display: flex; align-items: center; gap: 10px; width: 100%; background: none; border: none; border-radius: var(--radius-sm); padding: 10px 12px; font-size: 15px; font-weight: 700; font-family: var(--font); color: var(--text2); cursor: pointer; text-align: left; }
+.sidebar-btn:hover { background: var(--sage-light); color: var(--sage-deep); }
+.sidebar-btn.active { background: var(--sage-light); color: var(--sage-deep); }
+.sidebar-btn .si { font-size: 18px; }
+.user-pill { display: flex; align-items: center; gap: 8px; background: var(--cream); border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px; margin-bottom: 6px; cursor: pointer; }
+.user-pill:hover { background: var(--sage-light); border-color: var(--sage-mid); }
+.user-pill.active { background: var(--sage-light); border-color: var(--sage); }
+.user-avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--sage); display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 800; color: white; flex-shrink: 0; }
+.user-pill-name { font-size: 14px; font-weight: 800; color: var(--text); }
+.user-pill-pts { font-size: 11px; color: var(--text3); font-weight: 600; }
+
+/* ── CONTENT ── */
+.content { flex: 1; padding: 2rem; overflow-y: auto; }
+.page { display: none; }
+.page.active { display: block; }
+.page-title { font-family: var(--font-serif); font-size: 26px; color: var(--sage-deep); margin-bottom: 1.5rem; }
+
+/* ── CARDS ── */
+.card { background: white; border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem; margin-bottom: 1.25rem; }
+.card-title { font-size: 13px; font-weight: 800; color: var(--text3); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 1rem; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; }
+.grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
+.metric { background: var(--cream); border-radius: var(--radius-sm); padding: 1rem; text-align: center; }
+.metric-val { font-size: 28px; font-weight: 800; color: var(--sage-dark); }
+.metric-lbl { font-size: 12px; color: var(--text3); font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 4px; }
+.metric-green .metric-val { color: var(--sage-dark); }
+.metric-blush .metric-val { color: var(--blush-dark); }
+
+/* ── FORM FIELDS ── */
+.field { margin-bottom: 1rem; }
+.field label { display: block; font-size: 14px; font-weight: 700; color: var(--text2); margin-bottom: 5px; }
+.field input, .field textarea, .field select { width: 100%; font-size: 15px; font-family: var(--font); padding: 10px 13px; border: 2px solid var(--border); border-radius: var(--radius-sm); background: var(--cream); color: var(--text); font-weight: 600; }
+.field input:focus, .field textarea:focus { outline: none; border-color: var(--sage); background: white; }
+.field textarea { height: 70px; resize: none; }
+.slider-row { display: flex; align-items: center; gap: 12px; }
+.slider-row input[type=range] { flex: 1; accent-color: var(--sage); }
+.slider-val { font-size: 24px; font-weight: 800; color: var(--sage-dark); min-width: 32px; }
+.slider-cal { font-size: 12px; color: var(--text3); font-weight: 600; }
+.btn-primary { background: var(--sage); color: white; border: none; border-radius: var(--radius-sm); padding: 12px 24px; font-size: 15px; font-weight: 800; font-family: var(--font); cursor: pointer; }
+.btn-primary:hover { background: var(--sage-dark); }
+.btn-danger { background: #fee; color: var(--blush-dark); border: 1px solid var(--blush); border-radius: var(--radius-sm); padding: 10px 18px; font-size: 14px; font-weight: 800; font-family: var(--font); cursor: pointer; }
+.btn-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.btn-secondary { background: var(--cream-dark); color: var(--text2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 18px; font-size: 14px; font-weight: 800; font-family: var(--font); cursor: pointer; }
+
+/* ── WEEK CHART ── */
+.week-chart { display: flex; align-items: flex-end; gap: 8px; height: 80px; margin-top: 8px; }
+.wc-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; height: 100%; justify-content: flex-end; }
+.wc-bar { width: 100%; background: var(--sage); border-radius: 5px 5px 0 0; min-height: 4px; transition: height 0.4s; }
+.wc-lbl { font-size: 11px; color: var(--text3); font-weight: 700; }
+.wc-val { font-size: 10px; color: var(--sage-dark); font-weight: 700; }
+
+/* ── USER TABLE ── */
+.user-table { width: 100%; border-collapse: collapse; }
+.user-table th { font-size: 12px; font-weight: 800; color: var(--text3); text-transform: uppercase; letter-spacing: 0.05em; padding: 8px 12px; text-align: left; border-bottom: 2px solid var(--border); }
+.user-table td { padding: 12px; border-bottom: 1px solid var(--cream-dark); font-size: 14px; font-weight: 600; color: var(--text); vertical-align: middle; }
+.user-table tr:last-child td { border-bottom: none; }
+.user-table tr:hover td { background: var(--cream); cursor: pointer; }
+.status-badge { display: inline-block; padding: 3px 10px; border-radius: 100px; font-size: 12px; font-weight: 800; }
+.status-active { background: var(--sage-light); color: var(--sage-deep); }
+.status-new { background: var(--blush-light); color: var(--blush-dark); }
+
+/* ── FOOD LOG TABLE ── */
+.log-table { width: 100%; border-collapse: collapse; }
+.log-table th { font-size: 12px; font-weight: 800; color: var(--text3); text-transform: uppercase; letter-spacing: 0.04em; padding: 8px 10px; text-align: left; border-bottom: 2px solid var(--border); }
+.log-table td { padding: 10px; border-bottom: 1px solid var(--cream-dark); font-size: 14px; color: var(--text); }
+.log-table tr:last-child td { border-bottom: none; }
+.meal-tag { display: inline-block; padding: 2px 8px; border-radius: 100px; font-size: 11px; font-weight: 800; }
+.meal-breakfast { background: #fff3e0; color: #e65100; }
+.meal-lunch { background: #e8f5e9; color: #2e7d32; }
+.meal-dinner { background: #e8eaf6; color: #3949ab; }
+.meal-snacks { background: #fce4ec; color: #c2185b; }
+
+/* ── WEIGHT CHART ── */
+.weight-chart { display: flex; align-items: flex-end; gap: 6px; height: 100px; margin-top: 10px; padding: 0 4px; }
+.wt-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; height: 100%; justify-content: flex-end; }
+.wt-bar { width: 100%; background: var(--blush); border-radius: 4px 4px 0 0; min-height: 4px; }
+.wt-lbl { font-size: 10px; color: var(--text3); font-weight: 700; text-align: center; }
+.wt-val { font-size: 10px; color: var(--blush-dark); font-weight: 700; }
+
+/* ── NEW USER MODAL ── */
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 100; align-items: center; justify-content: center; padding: 1rem; }
+.modal-overlay.open { display: flex; }
+.modal-box { background: white; border-radius: 20px; padding: 2rem; width: 100%; max-width: 420px; }
+.modal-title { font-family: var(--font-serif); font-size: 22px; color: var(--sage-deep); margin-bottom: 1.25rem; }
+.modal-actions { display: flex; gap: 10px; margin-top: 1.5rem; }
+
+/* ── TOAST ── */
+.toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(40px); background: var(--sage-deep); color: white; padding: 13px 24px; border-radius: 100px; font-size: 15px; font-weight: 700; z-index: 999; transition: all 0.25s; white-space: nowrap; opacity: 0; pointer-events: none; }
+.toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+.spinner { display: inline-block; width: 16px; height: 16px; border: 2.5px solid var(--sage-mid); border-top-color: var(--sage); border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 6px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-bloom">&#127800;</div>
+    <div class="login-title">Still Blooming</div>
+    <div class="login-sub">Admin Dashboard</div>
+    <input type="password" id="login-pw" placeholder="Admin password" autocomplete="current-password"/>
+    <button class="login-btn" onclick="doLogin()">Sign In</button>
+    <div class="login-err" id="login-err"></div>
+  </div>
+</div>
+
+<!-- ADMIN -->
+<div id="admin-screen">
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-bloom">&#127800;</div>
+      <div>
+        <div class="topbar-title">Still Blooming</div>
+        <div class="topbar-sub">Admin Dashboard &nbsp;&middot;&nbsp; v3.0.0</div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <div class="topbar-greeting">Welcome back, Goggins &#128170;</div>
+      <button class="logout-btn" onclick="doLogout()">Sign out</button>
+    </div>
+  </div>
+
+  <div class="main">
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+      <div class="sidebar-section">Dashboard</div>
+      <button class="sidebar-btn active" id="sb-overview" onclick="showPage('overview')"><span class="si">&#127968;</span> Overview</button>
+      <button class="sidebar-btn" id="sb-users" onclick="showPage('users')"><span class="si">&#128101;</span> All Users</button>
+
+      <div class="sidebar-section">Users</div>
+      <div id="user-list-sidebar"></div>
+      <button class="sidebar-btn" onclick="openNewUser()"><span class="si">&#10133;</span> Add User</button>
+
+      <div class="sidebar-section">Settings</div>
+      <button class="sidebar-btn" id="sb-settings" onclick="showPage('settings')"><span class="si">&#9881;&#65039;</span> Admin Settings</button>
+    </div>
+
+    <!-- CONTENT -->
+    <div class="content">
+
+      <!-- OVERVIEW PAGE -->
+      <div class="page active" id="page-overview">
+        <div class="page-title">Overview</div>
+        <div class="grid-4" id="overview-metrics" style="margin-bottom:1.25rem"></div>
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-title">Weekly activity (all users)</div>
+            <div class="week-chart" id="overview-chart"></div>
+          </div>
+          <div class="card">
+            <div class="card-title">Users at a glance</div>
+            <div id="users-glance"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ALL USERS PAGE -->
+      <div class="page" id="page-users">
+        <div class="page-title">All Users</div>
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+            <div class="card-title" style="margin:0">User roster</div>
+            <button class="btn-primary" onclick="openNewUser()">&#10133; Add User</button>
+          </div>
+          <table class="user-table" id="users-table">
+            <thead><tr><th>Name</th><th>Daily Points</th><th>Goal Weight</th><th>Joined</th><th>Status</th></tr></thead>
+            <tbody id="users-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- USER DETAIL PAGE -->
+      <div class="page" id="page-user-detail">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:1.5rem">
+          <button onclick="showPage('users')" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--sage-dark)">&#8592;</button>
+          <div class="page-title" style="margin:0" id="detail-title">User</div>
+        </div>
+
+        <div class="grid-3" id="detail-metrics" style="margin-bottom:1.25rem"></div>
+
+        <div class="grid-2">
+          <div>
+            <div class="card">
+              <div class="card-title">Program settings</div>
+              <div class="field"><label>Name</label><input type="text" id="d-name"/></div>
+              <div class="field">
+                <label>Daily points budget</label>
+                <div class="slider-row">
+                  <input type="range" min="10" max="22" value="15" id="d-pts"
+                    oninput="document.getElementById('d-pts-val').textContent=this.value;document.getElementById('d-cal-val').textContent=(this.value*100).toLocaleString()+' cal/day'"/>
+                  <div><div class="slider-val" id="d-pts-val">15</div><div class="slider-cal" id="d-cal-val">1,500 cal/day</div></div>
+                </div>
+              </div>
+              <div class="field"><label>Daily message (shown in app)</label><textarea id="d-msg"></textarea></div>
+              <div class="field"><label>Starting weight (lbs)</label><input type="number" id="d-swt"/></div>
+              <div class="field"><label>Goal weight (lbs)</label><input type="number" id="d-gwt"/></div>
+              <div class="field"><label>PIN (4 digits)</label><input type="text" id="d-pin" maxlength="4" placeholder="Enter new PIN to change"/></div>
+              <div class="btn-row">
+                <button class="btn-primary" onclick="saveUserDetail()">Save changes</button>
+                <button class="btn-danger" onclick="deleteUser()">Delete user</button>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-title">Weight log</div>
+              <div class="weight-chart" id="detail-weight-chart"></div>
+              <div id="detail-weight-list" style="margin-top:12px"></div>
+            </div>
+          </div>
+
+          <div>
+            <div class="card">
+              <div class="card-title">This week</div>
+              <div class="week-chart" id="detail-week-chart"></div>
+            </div>
+            <div class="card">
+              <div class="card-title">Today's food log</div>
+              <div id="detail-today-log"></div>
+            </div>
+            <div class="card">
+              <div class="card-title">Recent history (30 days)</div>
+              <div id="detail-history"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SETTINGS PAGE -->
+      <div class="page" id="page-settings">
+        <div class="page-title">Admin Settings</div>
+        <div class="card" style="max-width:480px">
+          <div class="card-title">Change admin password</div>
+          <div class="field"><label>Current password</label><input type="password" id="s-cur-pw"/></div>
+          <div class="field"><label>New password</label><input type="password" id="s-new-pw"/></div>
+          <div class="field"><label>Confirm new password</label><input type="password" id="s-con-pw"/></div>
+          <button class="btn-primary" onclick="changeAdminPw()">Update password</button>
+          <div style="font-size:13px;color:var(--text3);margin-top:8px;font-weight:600" id="pw-msg"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- NEW USER MODAL -->
+<div class="modal-overlay" id="new-user-modal">
+  <div class="modal-box">
+    <div class="modal-title">&#127800; Add new user</div>
+    <div class="field"><label>Name</label><input type="text" id="nu-name" placeholder="e.g. Jane"/></div>
+    <div class="field"><label>4-digit PIN</label><input type="text" id="nu-pin" maxlength="4" placeholder="e.g. 1234"/></div>
+    <div class="field">
+      <label>Daily points budget</label>
+      <div class="slider-row">
+        <input type="range" min="10" max="22" value="15" id="nu-pts"
+          oninput="document.getElementById('nu-pts-val').textContent=this.value;document.getElementById('nu-cal-val').textContent=(this.value*100).toLocaleString()+' cal/day'"/>
+        <div><div class="slider-val" id="nu-pts-val">15</div><div class="slider-cal" id="nu-cal-val">1,500 cal/day</div></div>
+      </div>
+    </div>
+    <div class="field"><label>Goal weight (lbs, optional)</label><input type="number" id="nu-gwt" placeholder="e.g. 150"/></div>
+    <div class="modal-actions">
+      <button class="btn-primary" onclick="createUser()">Create user</button>
+      <button class="btn-secondary" onclick="closeNewUser()">Cancel</button>
+    </div>
+    <div style="font-size:13px;color:var(--blush-dark);margin-top:8px;font-weight:700" id="nu-err"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPA_URL = 'https://xztmnmgecosypwbikbvj.supabase.co';
+const SUPA_KEY = 'sb_publishable_MMSuvHm_CzQtjv7yCL-mQg_EVcf1iot';
+const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
+
+let ADMIN_PW = 'pass123';
+let allUsers = [];
+let currentDetailUser = null;
+const TODAY = new Date().toISOString().split('T')[0];
+const DAYS = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+
+// ── LOGIN ──────────────────────────────────────────────────────
+function doLogin() {
+  const pw = document.getElementById('login-pw').value;
+  const stored = localStorage.getItem('sb_admin_pw') || ADMIN_PW;
+  if (pw === stored) {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('admin-screen').style.display = 'block';
+    loadDashboard();
+  } else {
+    document.getElementById('login-err').textContent = 'Wrong password. Try again.';
+  }
+}
+document.getElementById('login-pw').addEventListener('keydown', e => { if (e.key==='Enter') doLogin(); });
+function doLogout() {
+  document.getElementById('admin-screen').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('login-pw').value = '';
+}
+
+// ── LOAD DASHBOARD ────────────────────────────────────────────
+async function loadDashboard() {
+  const { data } = await sb.from('users').select('*').order('created_at');
+  allUsers = data || [];
+  renderSidebarUsers();
+  renderUsersTable();
+  renderOverview();
+}
+
+function renderSidebarUsers() {
+  const el = document.getElementById('user-list-sidebar');
+  el.innerHTML = allUsers.map(u => {
+    const initials = u.name.substring(0,2).toUpperCase();
+    return `<div class="user-pill" id="up-${u.id}" onclick="openUserDetail('${u.id}')">
+      <div class="user-avatar">${initials}</div>
+      <div>
+        <div class="user-pill-name">${u.name}</div>
+        <div class="user-pill-pts">${u.daily_pts||15} pts/day</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderUsersTable() {
+  const tbody = document.getElementById('users-tbody');
+  tbody.innerHTML = allUsers.map(u => {
+    const joined = new Date(u.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+    return `<tr onclick="openUserDetail('${u.id}')">
+      <td><strong>${u.name}</strong></td>
+      <td>${u.daily_pts||15} pts (${((u.daily_pts||15)*100).toLocaleString()} cal)</td>
+      <td>${u.goal_wt ? u.goal_wt+' lbs' : '&mdash;'}</td>
+      <td>${joined}</td>
+      <td><span class="status-badge status-active">Active</span></td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="5" style="text-align:center;color:var(--text3);padding:2rem">No users yet &mdash; add one!</td></tr>';
+}
+
+async function renderOverview() {
+  // Metrics
+  const { data: todayLogs } = await sb.from('food_logs').select('user_id,pts').eq('date', TODAY);
+  const activeToday = new Set((todayLogs||[]).map(l=>l.user_id)).size;
+  const { data: allLogs } = await sb.from('food_logs').select('pts').eq('date', TODAY);
+  const totalPtsToday = (allLogs||[]).reduce((s,l)=>s+(l.pts||0),0);
+
+  document.getElementById('overview-metrics').innerHTML = `
+    <div class="metric"><div class="metric-val">${allUsers.length}</div><div class="metric-lbl">Total users</div></div>
+    <div class="metric"><div class="metric-val">${activeToday}</div><div class="metric-lbl">Active today</div></div>
+    <div class="metric"><div class="metric-val">${totalPtsToday}</div><div class="metric-lbl">Points logged today</div></div>
+    <div class="metric"><div class="metric-val">${allUsers.length>0?Math.round(totalPtsToday/allUsers.length):0}</div><div class="metric-lbl">Avg pts/user</div></div>`;
+
+  // Week chart
+  const { data: weekLogs } = await sb.from('food_logs').select('date,pts');
+  const byDay = {};
+  const today = new Date();
+  for (let i=6;i>=0;i--) {
+    const d = new Date(today); d.setDate(d.getDate()-i);
+    byDay[d.toISOString().split('T')[0]] = 0;
+  }
+  (weekLogs||[]).forEach(l => { if (byDay[l.date]!==undefined) byDay[l.date] += l.pts||0; });
+  const vals = Object.values(byDay);
+  const labels = Object.keys(byDay).map(k => DAYS[new Date(k+'T12:00:00').getDay()]);
+  const mx = Math.max(...vals, 1);
+  document.getElementById('overview-chart').innerHTML = vals.map((v,i)=>`
+    <div class="wc-col">
+      <div class="wc-val">${v||''}</div>
+      <div class="wc-bar" style="height:${Math.round((v/mx)*64)+4}px;opacity:${v>0?1:0.2}"></div>
+      <div class="wc-lbl">${labels[i]}</div>
+    </div>`).join('');
+
+  // Users glance
+  document.getElementById('users-glance').innerHTML = allUsers.length
+    ? allUsers.map(u => {
+        const uPts = (todayLogs||[]).filter(l=>l.user_id===u.id).reduce((s,l)=>s+(l.pts||0),0);
+        const pct = Math.min(100, Math.round((uPts/(u.daily_pts||15))*100));
+        return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--cream-dark)">
+          <div style="width:32px;height:32px;border-radius:50%;background:var(--sage);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:white;flex-shrink:0">${u.name.substring(0,2).toUpperCase()}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:14px;font-weight:800">${u.name}</div>
+            <div style="background:var(--cream-dark);border-radius:4px;height:5px;margin-top:4px"><div style="height:5px;border-radius:4px;background:var(--sage);width:${pct}%"></div></div>
+          </div>
+          <div style="font-size:13px;font-weight:800;color:var(--sage-dark)">${uPts} pts</div>
+        </div>`;
+      }).join('')
+    : '<div style="color:var(--text3);font-size:14px;font-weight:600;padding:1rem 0">No users yet</div>';
+}
+
+// ── USER DETAIL ───────────────────────────────────────────────
+async function openUserDetail(uid) {
+  const user = allUsers.find(u=>u.id===uid);
+  if (!user) return;
+  currentDetailUser = user;
+
+  // Highlight sidebar
+  document.querySelectorAll('.user-pill').forEach(p=>p.classList.remove('active'));
+  const pill = document.getElementById('up-'+uid);
+  if (pill) pill.classList.add('active');
+
+  document.getElementById('detail-title').textContent = user.name;
+  document.getElementById('d-name').value = user.name;
+  document.getElementById('d-pts').value = user.daily_pts||15;
+  document.getElementById('d-pts-val').textContent = user.daily_pts||15;
+  document.getElementById('d-cal-val').textContent = ((user.daily_pts||15)*100).toLocaleString()+' cal/day';
+  document.getElementById('d-msg').value = user.msg||'';
+  document.getElementById('d-swt').value = user.start_wt||'';
+  document.getElementById('d-gwt').value = user.goal_wt||'';
+  document.getElementById('d-pin').value = '';
+
+  showPage('user-detail');
+
+  // Load data
+  const [{ data: todayFoods }, { data: weekFoods }, { data: weights }] = await Promise.all([
+    sb.from('food_logs').select('*').eq('user_id', uid).eq('date', TODAY),
+    sb.from('food_logs').select('date,pts').eq('user_id', uid),
+    sb.from('weight_logs').select('*').eq('user_id', uid).order('date',{ascending:false}).limit(12),
+  ]);
+
+  // Metrics
+  const todayPts = (todayFoods||[]).reduce((s,f)=>s+(f.pts||0),0);
+  const todayPct = Math.round((todayPts/(user.daily_pts||15))*100);
+  const wtEntries = weights||[];
+  const wtChange = wtEntries.length>=2 ? (wtEntries[0].weight_lbs - wtEntries[wtEntries.length-1].weight_lbs).toFixed(1) : null;
+  document.getElementById('detail-metrics').innerHTML = `
+    <div class="metric"><div class="metric-val">${todayPts}</div><div class="metric-lbl">Pts today</div></div>
+    <div class="metric"><div class="metric-val">${todayPct}%</div><div class="metric-lbl">Goal progress</div></div>
+    <div class="metric"><div class="metric-val">${wtEntries[0]?wtEntries[0].weight_lbs+' lbs':'&mdash;'}</div><div class="metric-lbl">Last weight</div></div>
+    ${wtChange!==null ? `<div class="metric ${parseFloat(wtChange)<0?'metric-green':'metric-blush'}"><div class="metric-val">${parseFloat(wtChange)<0?'':'+'} ${wtChange} lbs</div><div class="metric-lbl">Total change</div></div>` : '<div class="metric"><div class="metric-val">&mdash;</div><div class="metric-lbl">Weight change</div></div>'}`;
+
+  // Week chart
+  const byDay = {};
+  const now = new Date();
+  for (let i=6;i>=0;i--) {
+    const d = new Date(now); d.setDate(d.getDate()-i);
+    byDay[d.toISOString().split('T')[0]] = 0;
+  }
+  (weekFoods||[]).forEach(l=>{ if(byDay[l.date]!==undefined) byDay[l.date]+=(l.pts||0); });
+  const wVals = Object.values(byDay);
+  const wLabels = Object.keys(byDay).map(k=>DAYS[new Date(k+'T12:00:00').getDay()]);
+  const wMx = Math.max(...wVals, user.daily_pts||15);
+  document.getElementById('detail-week-chart').innerHTML = wVals.map((v,i)=>`
+    <div class="wc-col">
+      <div class="wc-val">${v||''}</div>
+      <div class="wc-bar" style="height:${Math.round((v/wMx)*64)+4}px;opacity:${v>0?1:0.25}"></div>
+      <div class="wc-lbl">${wLabels[i]}</div>
+    </div>`).join('');
+
+  // Today's log
+  const el = document.getElementById('detail-today-log');
+  if (!todayFoods||!todayFoods.length) { el.innerHTML = '<div style="color:var(--text3);font-size:14px;font-weight:600">Nothing logged today yet</div>'; }
+  else {
+    el.innerHTML = `<table class="log-table"><thead><tr><th>Food</th><th>Meal</th><th>Pts</th><th>Cal</th></tr></thead><tbody>` +
+      todayFoods.map(f=>`<tr><td>${f.emoji||''} ${f.food_name}</td><td><span class="meal-tag meal-${f.meal}">${f.meal}</span></td><td>${f.pts}</td><td>${f.cals}</td></tr>`).join('') +
+      '</tbody></table>';
+  }
+
+  // Weight chart & list
+  const wtEl = document.getElementById('detail-weight-chart');
+  const wtList = document.getElementById('detail-weight-list');
+  if (!wtEntries.length) {
+    wtEl.innerHTML = '<div style="color:var(--text3);font-size:14px;font-weight:600">No weigh-ins recorded</div>';
+    wtList.innerHTML = '';
+  } else {
+    const sorted = [...wtEntries].reverse();
+    const wtMx = Math.max(...sorted.map(w=>w.weight_lbs));
+    const wtMn = Math.min(...sorted.map(w=>w.weight_lbs));
+    const wtRange = wtMx - wtMn || 1;
+    wtEl.innerHTML = sorted.map(w=>{
+      const h = Math.round(((w.weight_lbs-wtMn)/wtRange)*80)+10;
+      const lbl = new Date(w.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'});
+      return `<div class="wt-col"><div class="wt-val">${w.weight_lbs}</div><div class="wt-bar" style="height:${h}px"></div><div class="wt-lbl">${lbl}</div></div>`;
+    }).join('');
+    wtList.innerHTML = wtEntries.slice(0,5).map((w,i)=>{
+      const prev = wtEntries[i+1];
+      const diff = prev ? (w.weight_lbs-prev.weight_lbs).toFixed(1) : null;
+      const diffHtml = diff!==null ? (parseFloat(diff)<0
+        ? `<span style="color:var(--sage-dark);font-size:12px;font-weight:700">&#9660; ${Math.abs(diff)} lbs</span>`
+        : `<span style="color:var(--blush-dark);font-size:12px;font-weight:700">&#9650; ${diff} lbs</span>`) : '';
+      const lbl = new Date(w.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'});
+      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--cream-dark)">
+        <div style="font-size:14px;color:var(--text2);font-weight:600">${lbl}</div>
+        <div style="display:flex;align-items:center;gap:8px">${diffHtml}<div style="font-size:15px;font-weight:800;color:var(--sage-dark)">${w.weight_lbs} lbs</div></div>
+      </div>`;
+    }).join('');
+  }
+
+  // History
+  const { data: histFoods } = await sb.from('food_logs').select('date,pts,food_name,emoji')
+    .eq('user_id', uid).neq('date', TODAY).order('date',{ascending:false}).limit(200);
+  const byHistDay = {};
+  (histFoods||[]).forEach(f=>{
+    if(!byHistDay[f.date]) byHistDay[f.date]={pts:0,foods:[]};
+    byHistDay[f.date].pts += f.pts||0;
+    byHistDay[f.date].foods.push({name:f.food_name,emoji:f.emoji||'',pts:f.pts||0});
+  });
+  const histKeys = Object.keys(byHistDay).sort().reverse().slice(0,30);
+  const histEl = document.getElementById('detail-history');
+  if (!histKeys.length) { histEl.innerHTML = '<div style="color:var(--text3);font-size:14px;font-weight:600">No history yet</div>'; }
+  else {
+    histEl.innerHTML = histKeys.map(k=>{
+      const h = byHistDay[k];
+      const d = new Date(k+'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+      const pct = Math.min(100,Math.round((h.pts/(user.daily_pts||15))*100));
+      return `<div style="padding:8px 0;border-bottom:1px solid var(--cream-dark)">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+          <div style="font-size:14px;font-weight:800">${d}</div>
+          <div style="font-size:14px;font-weight:800;color:var(--sage-dark)">${h.pts} pts</div>
+        </div>
+        <div style="background:var(--cream-dark);border-radius:4px;height:4px"><div style="height:4px;border-radius:4px;background:var(--sage);width:${pct}%"></div></div>
+        <div style="margin-top:4px">${h.foods.slice(0,3).map(f=>`<span style="font-size:12px;color:var(--text3);font-weight:600;margin-right:8px">${f.emoji} ${f.name}</span>`).join('')}${h.foods.length>3?`<span style="font-size:11px;color:var(--text3)">+${h.foods.length-3} more</span>`:''}</div>
+      </div>`;
+    }).join('');
+  }
+}
+
+async function saveUserDetail() {
+  if (!currentDetailUser) return;
+  const updates = {
+    name: document.getElementById('d-name').value.trim() || currentDetailUser.name,
+    daily_pts: parseInt(document.getElementById('d-pts').value),
+    msg: document.getElementById('d-msg').value,
+    start_wt: parseFloat(document.getElementById('d-swt').value)||null,
+    goal_wt: parseFloat(document.getElementById('d-gwt').value)||null,
+  };
+  const newPin = document.getElementById('d-pin').value.trim();
+  if (newPin && newPin.length===4) updates.pin = newPin;
+  const { error } = await sb.from('users').update(updates).eq('id', currentDetailUser.id);
+  if (error) { showToast('Error saving &mdash; try again'); return; }
+  Object.assign(currentDetailUser, updates);
+  allUsers = allUsers.map(u=>u.id===currentDetailUser.id ? {...u,...updates} : u);
+  renderSidebarUsers();
+  renderUsersTable();
+  document.getElementById('detail-title').textContent = updates.name;
+  showToast('&#10003; Changes saved for '+updates.name);
+}
+
+async function deleteUser() {
+  if (!currentDetailUser) return;
+  if (!confirm('Delete '+currentDetailUser.name+'? This cannot be undone.')) return;
+  await sb.from('users').delete().eq('id', currentDetailUser.id);
+  allUsers = allUsers.filter(u=>u.id!==currentDetailUser.id);
+  currentDetailUser = null;
+  renderSidebarUsers();
+  renderUsersTable();
+  renderOverview();
+  showPage('users');
+  showToast('User deleted');
+}
+
+// ── CREATE USER ───────────────────────────────────────────────
+function openNewUser() { document.getElementById('new-user-modal').classList.add('open'); }
+function closeNewUser() {
+  document.getElementById('new-user-modal').classList.remove('open');
+  document.getElementById('nu-name').value = '';
+  document.getElementById('nu-pin').value = '';
+  document.getElementById('nu-err').textContent = '';
+}
+async function createUser() {
+  const name = document.getElementById('nu-name').value.trim();
+  const pin = document.getElementById('nu-pin').value.trim();
+  const pts = parseInt(document.getElementById('nu-pts').value);
+  const gwt = parseFloat(document.getElementById('nu-gwt').value)||null;
+  if (!name) { document.getElementById('nu-err').textContent = 'Please enter a name'; return; }
+  if (pin.length !== 4 || !/^\d{4}$/.test(pin)) { document.getElementById('nu-err').textContent = 'PIN must be exactly 4 digits'; return; }
+  const { data, error } = await sb.from('users').insert({ name, pin, daily_pts:pts, goal_wt:gwt,
+    msg:"Every good choice is a gift to yourself. Keep going! \uD83C\uDF38" }).select().single();
+  if (error) { document.getElementById('nu-err').textContent = 'Error creating user: '+error.message; return; }
+  allUsers.push(data);
+  renderSidebarUsers();
+  renderUsersTable();
+  renderOverview();
+  closeNewUser();
+  showToast('&#127800; '+name+' created! PIN: '+pin);
+}
+
+// ── SETTINGS ──────────────────────────────────────────────────
+function changeAdminPw() {
+  const cur = document.getElementById('s-cur-pw').value;
+  const nw = document.getElementById('s-new-pw').value;
+  const con = document.getElementById('s-con-pw').value;
+  const stored = localStorage.getItem('sb_admin_pw') || ADMIN_PW;
+  const msg = document.getElementById('pw-msg');
+  if (cur !== stored) { msg.style.color='var(--blush-dark)'; msg.textContent='Current password is wrong'; return; }
+  if (nw.length < 6) { msg.style.color='var(--blush-dark)'; msg.textContent='New password must be at least 6 characters'; return; }
+  if (nw !== con) { msg.style.color='var(--blush-dark)'; msg.textContent='New passwords do not match'; return; }
+  localStorage.setItem('sb_admin_pw', nw);
+  ADMIN_PW = nw;
+  document.getElementById('s-cur-pw').value = '';
+  document.getElementById('s-new-pw').value = '';
+  document.getElementById('s-con-pw').value = '';
+  msg.style.color='var(--sage-dark)';
+  msg.textContent='Password updated successfully';
+  showToast('&#128274; Password changed');
+}
+
+// ── NAV ───────────────────────────────────────────────────────
+function showPage(page) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.sidebar-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  const sbBtn = document.getElementById('sb-'+page);
+  if (sbBtn) sbBtn.classList.add('active');
+}
+
+// ── TOAST ──────────────────────────────────────────────────────
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.innerHTML = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>t.classList.remove('show'), 2500);
+}
+</script>
+</body>
+</html>
